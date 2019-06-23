@@ -27,17 +27,17 @@ type VAS struct {
 	Actions    []interface{} `json:"actions"`
 }
 
-func (c *Client) makeVAS() VAS {
+func (c *Client) makeVAS(oid, name, version string, kw []string) VAS {
 	return VAS{
-		Oid:      c.config.Oid,
-		Name:     "TinyMesh VAS - CWi CO2 Monitor",
+		Oid:      oid,
+		Name:     name,
 		Type:     coreService,
 		Version:  version,
-		Keywords: []string{"co2"},
+		Keywords: kw,
 		// rest is empty
 		Properties: []interface{}{},
-		Events: []interface{}{},
-		Actions: []interface{}{},
+		Events:     []interface{}{},
+		Actions:    []interface{}{},
 	}
 }
 
@@ -45,7 +45,7 @@ func (c *Client) GetThingDescription() *gin.H {
 	if c.td == nil {
 
 		var vasGroup []VAS
-		vasGroup = append(vasGroup, c.makeVAS())
+		vasGroup = append(vasGroup, c.makeVAS(c.config.Oid, "TinyMesh VAS - CWi CO2 Monitor", version, []string{"co2"}))
 
 		c.td = &gin.H{
 			"adapter-id":         c.config.AdapterID,
@@ -59,7 +59,7 @@ func (c *Client) GetThingDescription() *gin.H {
 func New(vicinityConfig *config.VicinityConfig, db interface{}) *Client {
 	return &Client{
 		config: vicinityConfig,
-		db: db,
-		td: nil,
+		db:     db,
+		td:     nil,
 	}
 }
