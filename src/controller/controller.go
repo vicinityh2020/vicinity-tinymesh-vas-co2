@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/jinzhu/gorm"
 	"io"
 	"log"
 	"net/http"
@@ -14,6 +15,7 @@ import (
 
 type Server struct {
 	config    *config.ServerConfig
+	db        *gorm.DB
 	vicinity  *vicinity.Client
 	http      *http.Server
 	ginLogger io.Writer
@@ -31,11 +33,12 @@ func (server *Server) setupRouter() *gin.Engine {
 	return r
 }
 
-func New(serverConfig *config.ServerConfig, vicinity *vicinity.Client, logwriter io.Writer) *Server {
+func New(serverConfig *config.ServerConfig, db *gorm.DB, vicinity *vicinity.Client, logWriter io.Writer) *Server {
 	return &Server{
 		vicinity:  vicinity,
 		config:    serverConfig,
-		ginLogger: logwriter,
+		ginLogger: logWriter,
+		db: db,
 	}
 }
 

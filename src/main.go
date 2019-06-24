@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/jinzhu/gorm"
 	"github.com/joho/godotenv"
 	"log"
 	"os"
@@ -11,12 +12,14 @@ import (
 	"time"
 	"vicinity-tinymesh-vas-co2/src/config"
 	"vicinity-tinymesh-vas-co2/src/controller"
+	"vicinity-tinymesh-vas-co2/src/database"
+	"vicinity-tinymesh-vas-co2/src/model"
 	"vicinity-tinymesh-vas-co2/src/vicinity"
 )
 
 type Environment struct {
 	Config  *config.Config
-	DB      string
+	DB      *gorm.DB
 	LogPath string
 }
 
@@ -37,40 +40,47 @@ func (app *Environment) init() {
 	}
 
 	app.Config = config.New()
-
-	// open bolt db
-	//db, err := storm.Open(".db", storm.BoltOptions(0600, &bolt.Options{Timeout: 1 * time.Second}))
-	//if err != nil {
-	//	log.Fatalln(err.Error())
-	//}
-	//
-	//app.DB = db
 }
 
-func (app *Environment) run() {
-	// Logger
-	mainLogger, err := os.OpenFile(path.Join(app.LogPath, fmt.Sprintf("adapter-%s.log", time.Now().Format("2006-01-02"))), os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+func (app *Environment) newLogWriter(logName string) *os.File {
+	l, err := os.OpenFile(path.Join(app.LogPath, fmt.Sprintf("%s-%s.log", logName, time.Now().Format("2006-01-02"))), os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 
 	if err != nil {
 		log.Fatal("Could not create mainLogger logfile:", err.Error())
 	}
+
+	return l
+}
+
+func (app *Environment) run() {
+	// Main logger
+	mainLogger := app.newLogWriter("adapter")
 	defer mainLogger.Close()
 
-	ginLogger, err := os.OpenFile(path.Join(app.LogPath, fmt.Sprintf("gin-%s.log", time.Now().Format("2006-01-02"))), os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
-	if err != nil {
-		log.Fatal("Could not create GIN trace logfile:", err.Error())
-	}
+	// Gin logger
+	ginLogger := app.newLogWriter("gin")
 	defer ginLogger.Close()
+
+	// DB logger
+	dbLogger := app.newLogWriter("gorm")
+	defer dbLogger.Close()
 
 	log.SetOutput(mainLogger)
 
-	//defer app.DB.Close()
+	// Database
+	app.DB = database.New(app.Config.Database, dbLogger)
+	defer app.DB.Close()
+
+	//app.DB.DropTableIfExists(&model.Reading{}, &model.Sensor{})
+	app.DB.AutoMigrate(&model.Sensor{}, &model.Reading{})
+
+	app.DB.Model(&model.Reading{}).AddForeignKey("sensor_oid", "sensors(oid)", "CASCADE", "RESTRICT")
 
 	// VICINITY
 	vas := vicinity.New(app.Config.Vicinity, app.DB)
 
 	// Controller
-	server := controller.New(app.Config.Server, vas, ginLogger)
+	server := controller.New(app.Config.Server, app.DB, vas, ginLogger)
 	go server.Listen()
 	defer server.Shutdown()
 

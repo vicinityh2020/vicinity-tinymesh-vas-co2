@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"log"
 	"os"
 )
@@ -11,6 +12,9 @@ const (
 	vicinityVASOid = "7cd7a012-9758-4498-a5c3-bcdbe0ba5c7b"
 
 	serverPort = "9090"
+
+	databasePort = "5432"
+	databaseHost = "localhost"
 )
 
 type VicinityConfig struct {
@@ -23,9 +27,25 @@ type ServerConfig struct {
 	Port string
 }
 
+type DBConfig struct {
+	Host string
+	Port string
+	User string
+	Name string
+	Pass string
+}
+
 type Config struct {
 	Vicinity *VicinityConfig
 	Server   *ServerConfig
+	Database *DBConfig
+}
+
+func (dbc *DBConfig) String() string {
+	return fmt.Sprintf(
+		"host=%s port=%s user=%s dbname=%s password=%s sslmode=disable",
+		dbc.Host, dbc.Port, dbc.User, dbc.Name, dbc.Pass,
+	)
 }
 
 // New returns a new Config struct
@@ -38,6 +58,13 @@ func New() *Config {
 		},
 		Server: &ServerConfig{
 			Port: getEnv("SERVER_PORT", serverPort),
+		},
+		Database: &DBConfig{
+			Host: getEnv("DB_HOST", databaseHost),
+			Port: getEnv("DB_PORT", databasePort),
+			User: getEnv("DB_USER", ""),
+			Name: getEnv("DB_NAME", ""),
+			Pass: getEnv("DB_PASS", ""),
 		},
 	}
 }
