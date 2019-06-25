@@ -10,11 +10,11 @@ import (
 	"path"
 	"syscall"
 	"time"
-	"vicinity-tinymesh-vas-co2/src/config"
-	"vicinity-tinymesh-vas-co2/src/controller"
-	"vicinity-tinymesh-vas-co2/src/database"
-	"vicinity-tinymesh-vas-co2/src/model"
-	"vicinity-tinymesh-vas-co2/src/vicinity"
+	"vicinity-tinymesh-vas-co2/vas-co2-backend/config"
+	"vicinity-tinymesh-vas-co2/vas-co2-backend/controller"
+	"vicinity-tinymesh-vas-co2/vas-co2-backend/database"
+	"vicinity-tinymesh-vas-co2/vas-co2-backend/model"
+	"vicinity-tinymesh-vas-co2/vas-co2-backend/vicinity"
 )
 
 type Environment struct {

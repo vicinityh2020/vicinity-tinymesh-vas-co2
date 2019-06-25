@@ -5,7 +5,7 @@ import (
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 	"io"
 	"log"
-	"vicinity-tinymesh-vas-co2/src/config"
+	"vicinity-tinymesh-vas-co2/vas-co2-backend/config"
 )
 
 const (

@@ -29,3 +29,6 @@ vendor
 .env
 
 *.db
+
+node_modules
+.vscode

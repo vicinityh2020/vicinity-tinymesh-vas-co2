@@ -9,8 +9,8 @@ import (
 	"log"
 	"net/http"
 	"time"
-	"vicinity-tinymesh-vas-co2/src/config"
-	"vicinity-tinymesh-vas-co2/src/vicinity"
+	"vicinity-tinymesh-vas-co2/vas-co2-backend/config"
+	"vicinity-tinymesh-vas-co2/vas-co2-backend/vicinity"
 )
 
 type Server struct {

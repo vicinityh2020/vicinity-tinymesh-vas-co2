@@ -4,7 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	uuid "github.com/satori/go.uuid"
 	"net/http"
-	"vicinity-tinymesh-vas-co2/src/model"
+	"vicinity-tinymesh-vas-co2/vas-co2-backend/model"
 )
 
 type EventData struct {

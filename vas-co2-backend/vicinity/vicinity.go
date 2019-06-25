@@ -2,7 +2,7 @@ package vicinity
 
 import (
 	"github.com/gin-gonic/gin"
-	"vicinity-tinymesh-vas-co2/src/config"
+	"vicinity-tinymesh-vas-co2/vas-co2-backend/config"
 )
 
 type Client struct {
