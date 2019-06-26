@@ -39,13 +39,15 @@ function setYAxis(name) {
                     userCallback: function (item) {
                         return `${item} ${name}`;
                     },
+                    padding: 0,
+                    beginAtZero: true,
                 }
             }]
         }
     };
 }
 
-export default function LineChartCO2(sensors) {
+export default function LineChartCO2(props) {
 
     const [dataCO2, setDataCO2] = useState(data);
     const [toggle, setToggle] = useState(false);
@@ -54,7 +56,7 @@ export default function LineChartCO2(sensors) {
         const fetchData = async () => {
             const options = {
                 method: 'get',
-                url: '/api/objects/57543cd0-5215-4667-b89d-24968a503c6b',
+                url: `/api/objects/${props.sensor.oid}`,
                 time: 3000
             };
 
@@ -65,7 +67,7 @@ export default function LineChartCO2(sensors) {
                 labels: response.data.labels,
                 datasets: [
                     {
-                        label: 'My First dataset',
+                        label: props.sensor.name,
                         fill: true,
                         lineTension: 0.1,
                         backgroundColor: 'rgba(75,192,192,0.4)',
@@ -99,8 +101,7 @@ export default function LineChartCO2(sensors) {
 
     return (
         <div>
-            <h2>Line Example</h2>
-            <Button onClick={toggleFetch}/>
+            <Button style={{float: 'right'}} onClick={toggleFetch}>Refresh</Button>
             <Line data={dataCO2} options={setYAxis('ppm')}/>
         </div>
     );
