@@ -14,11 +14,11 @@ import (
 )
 
 type Server struct {
-	config    *config.ServerConfig
-	db        *gorm.DB
-	vicinity  *vicinity.Client
-	http      *http.Server
-	ginLogger io.Writer
+	config            *config.ServerConfig
+	db                *gorm.DB
+	vicinity          *vicinity.Client
+	http              *http.Server
+	ginLogger         io.Writer
 }
 
 func (server *Server) setupRouter() *gin.Engine {
@@ -30,6 +30,7 @@ func (server *Server) setupRouter() *gin.Engine {
 	r.GET("/objects", server.handleTD)
 	r.PUT("/objects/:iid/publishers/:oid/events/:eid", server.vicinityEventHandler)
 
+	r.GET("/api/objects/:oid", server.getObjectReadings)
 	return r
 }
 

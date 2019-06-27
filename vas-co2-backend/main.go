@@ -5,6 +5,7 @@ import (
 	"github.com/jinzhu/gorm"
 	"github.com/joho/godotenv"
 	"log"
+	"math/rand"
 	"os"
 	"os/signal"
 	"path"
@@ -53,6 +54,7 @@ func (app *Environment) newLogWriter(logName string) *os.File {
 }
 
 func (app *Environment) run() {
+	rand.Seed(time.Now().UnixNano())
 	// Main logger
 	mainLogger := app.newLogWriter("adapter")
 	defer mainLogger.Close()
