@@ -1,6 +1,7 @@
 import React, {useEffect, useState} from 'react';
 import {Line} from 'react-chartjs-2';
 import {Button} from 'react-bootstrap';
+import PropTypes from 'prop-types';
 
 import axios from 'axios';
 
@@ -8,7 +9,7 @@ const data = {
     labels: [],
     datasets: [
         {
-            label: 'My First dataset',
+            label: 'No data for the last 12 hours',
             fill: true,
             lineTension: 0.1,
             backgroundColor: 'rgba(75,192,192,0.4)',
@@ -43,8 +44,19 @@ function setYAxis(name) {
                     beginAtZero: true,
                 }
             }]
+        },
+        animation: {
+            duration: 0
         }
     };
+}
+
+LineChartCO2.propTypes = {
+    sensor: PropTypes.object.isRequired,
+};
+
+function isEmpty(v) {
+    return (typeof (v) === 'undefined' || v == null);
 }
 
 export default function LineChartCO2(props) {
@@ -60,8 +72,24 @@ export default function LineChartCO2(props) {
                 time: 3000
             };
 
-            const response = await axios(options);
-            console.log(response);
+            let response;
+            try {
+                response = await axios(options);
+            } catch (e) {
+                alert('Unable to connect to backend server. Make sure the backend server is running');
+                console.log(e);
+                return response;
+            }
+
+            if (isEmpty(response.data.data)) {
+                console.log('no data received');
+                return;
+            }
+
+            if (isEmpty(response.data.labels)) {
+                console.log('no labels received');
+                return;
+            }
 
             setDataCO2({
                 labels: response.data.labels,
@@ -95,7 +123,7 @@ export default function LineChartCO2(props) {
             console.log(error);
         });
 
-    }, [toggle]);
+    }, [toggle, props.sensor.name, props.sensor.oid]);
 
     const toggleFetch = () => setToggle(!toggle);
 

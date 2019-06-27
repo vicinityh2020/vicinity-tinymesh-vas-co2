@@ -11,12 +11,12 @@ function Home() {
             <Row>
                 <Col style={{paddingBottom: '30px'}} sm={12}>
                     <LineChartCO2 sensor={
-                        {name: 'LAS00016222', oid: '5b0a4b48-d71e-4cf6-9a73-022e2cedb7e1'}
+                        {name: 'LAS00016222', oid: 'aac3fff0-49d6-45dd-aa3f-77c3e36644c8'}
                     }/>
                 </Col>
                 <Col sm={12}>
                     <LineChartCO2 sensor={
-                        {name: 'LAS00016225', oid: '57543cd0-5215-4667-b89d-24968a503c6b'}
+                        {name: 'LAS00016225', oid: '6d7f79e5-f8f5-4bfb-b8b4-cd09fea86bbb'}
                     }/>
                 </Col>
             </Row>
