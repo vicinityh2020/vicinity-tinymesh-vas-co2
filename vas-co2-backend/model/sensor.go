@@ -4,6 +4,7 @@ import (
 	_ "database/sql"
 	"github.com/jinzhu/gorm"
 	uuid "github.com/satori/go.uuid"
+	"time"
 )
 
 type Sensor struct {
@@ -16,6 +17,6 @@ type Sensor struct {
 type Reading struct {
 	gorm.Model
 	Value     int
-	Timestamp string
+	Time      time.Time
 	SensorOid uuid.UUID `gorm:"index"`
 }
