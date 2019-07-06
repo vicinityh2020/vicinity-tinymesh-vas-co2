@@ -30,6 +30,10 @@ type ChartData struct {
 	Value int
 }
 
+type DateRange struct {
+	T time.Time
+}
+
 const (
 	coreService = "core:Service"
 	version     = "1.0.0"
@@ -75,6 +79,60 @@ func (c *Client) GetThingDescription() *gin.H {
 	return c.td
 }
 
+/*
+select DATE_TRUNC('hour', time) as t,
+array_agg(value) from readings r
+where r.time::date = '2019-07-05'
+AND r.sensor_oid = 'aac3fff0-49d6-45dd-aa3f-77c3e36644c8'
+GROUP BY t;
+ */
+
+func (c *Client) GetDateRange(oid uuid.UUID) *gin.H {
+	var result []DateRange
+	c.db.Raw(
+		`SELECT DATE_TRUNC('day', time) as t
+		FROM readings r 
+		WHERE r.sensor_oid = ?
+		GROUP BY t
+		ORDER BY t
+		ASC`, oid).Scan(&result)
+
+	var days []time.Time
+
+	for _, day := range result {
+		days = append(days, day.T)
+	}
+
+	return &gin.H{
+		"days": days,
+	}
+}
+
+func (c *Client) GetReadingsByDate(oid uuid.UUID, dateString string) (*gin.H, error) {
+	var labels []string
+	var data []int
+	var result []ChartData
+
+	c.db.Raw(
+		`select time as t, value
+		FROM readings r
+		WHERE r.time::date = ? 
+		AND r.sensor_oid = ? 
+		ORDER BY r.time ASC`, dateString, oid).Scan(&result)
+
+	for _, row := range result {
+		labels = append(labels, row.T.Format("15:04"))
+		data = append(data, row.Value)
+	}
+
+	readings := &gin.H{
+		"labels": labels,
+		"data":   data,
+	}
+
+	return readings, nil
+}
+
 func (c *Client) GetReadings(oid uuid.UUID) (*gin.H, error) {
 	var result []ChartData
 	var labels []string
@@ -97,22 +155,6 @@ func (c *Client) GetReadings(oid uuid.UUID) (*gin.H, error) {
 		log.Println(c.db.Error.Error())
 		return nil, errors.New("could not execute select query")
 	}
-
-	// TODO: uncomment if you would like a fallback query in case no data was fetched in the interval
-	//if len(result) == 0 {
-	//	c.db.Raw(`SELECT DATE_TRUNC('hour', time) as t,
-	//	ROUND(AVG(value), 0) as value
-	//	FROM readings r
-	//	WHERE r.time >= ((SELECT MAX(r.time) from readings as r WHERE r.sensor_oid = ?) - INTERVAL '12 hours')
-	//	AND r.sensor_oid = ?
-	//	GROUP BY t
-	//	ORDER BY t ASC;`, oid, oid).Scan(&result)
-	//
-	//	if c.db.Error != nil {
-	//		log.Println(c.db.Error.Error())
-	//		return nil, errors.New("could not execute auxiliary select query")
-	//	}
-	//}
 
 	for _, row := range result {
 		labels = append(labels, row.T.Format("15:04"))

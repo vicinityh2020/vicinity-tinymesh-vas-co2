@@ -6,13 +6,16 @@ import PropTypes from 'prop-types';
 
 import axios from 'axios';
 
-const MAX_X_LABELS = 11;
+import DatePicker from 'react-datepicker';
+import moment from 'moment';
+
+const MAX_X_LABELS = 24;
 
 const data = {
     labels: [],
     datasets: [
         {
-            label: 'No data for the last 12 hours',
+            label: 'No data for the selected date',
             fill: true,
             lineTension: 0.1,
             backgroundColor: 'rgba(75,192,192,0.4)',
@@ -35,6 +38,30 @@ const data = {
     ]
 };
 
+function repeatHorizontal(name, y, length, color) {
+    return {
+        label: name,
+        fill: false,
+        lineTension: 0.1,
+        backgroundColor: color,
+        borderColor: color,
+        borderCapStyle: 'butt',
+        borderDash: [],
+        borderDashOffset: 0.0,
+        borderJoinStyle: 'miter',
+        pointBorderColor: color,
+        pointBackgroundColor: '#fff',
+        pointBorderWidth: 1,
+        pointHoverRadius: 0,
+        pointHoverBackgroundColor: color,
+        pointHoverBorderColor: color,
+        pointHoverBorderWidth: 2,
+        pointRadius: 0,
+        pointHitRadius: 0,
+        data: new Array(length).fill(y),
+    }
+}
+
 function setYAxis(name) {
     return {
         scales: {
@@ -45,6 +72,9 @@ function setYAxis(name) {
                     },
                     padding: 0,
                     beginAtZero: true,
+                    min: 0,
+                    max: 1200,
+                    stepSize: 100
                 }
             }],
             xAxes : [{
@@ -72,6 +102,8 @@ export default function LineChartCO2(props) {
 
     const [dataCO2, setDataCO2] = useState(data);
     const [toggle, setToggle] = useState(false);
+    // const [date, setDate] = useState(moment.utc().format('YYYY-MM-DD'));
+    const [date, setDate] = useState(moment.utc().toDate());
 
     Chart.pluginService.register({
         afterUpdate: function (chart) {
@@ -165,10 +197,17 @@ export default function LineChartCO2(props) {
     });
 
     useEffect(() => {
+
+    }, []);
+
+    useEffect(() => {
         const fetchData = async () => {
+
+            const dateString = moment(date).utc().format('YYYY-MM-DD');
+
             const options = {
                 method: 'get',
-                url: `/api/objects/${props.sensor.oid}`,
+                url: `/api/objects/${props.sensor.oid}/date/${dateString}`,
                 time: 3000
             };
 
@@ -176,7 +215,7 @@ export default function LineChartCO2(props) {
             try {
                 response = await axios(options);
             } catch (e) {
-                alert('Unable to connect to backend server. Make sure the backend server is running');
+                // alert('Unable to connect to backend server. Make sure the backend server is running');
                 console.log(e);
                 return response;
             }
@@ -191,16 +230,8 @@ export default function LineChartCO2(props) {
                 return;
             }
 
-            let l = [];
-            let d = [];
-
-            for (let i = 0; i <= 100; i++) {
-                l[i] = i;
-                d[i] = 1000;
-            }
-
             setDataCO2({
-                labels: l,
+                labels: response.data.labels,
                 datasets: [
                     {
                         label: [props.sensor.name],
@@ -215,36 +246,17 @@ export default function LineChartCO2(props) {
                         pointBorderColor: 'rgba(75,192,192,1)',
                         pointBackgroundColor: '#fff',
                         pointBorderWidth: 1,
-                        pointHoverRadius: 5,
-                        pointHoverBackgroundColor: 'rgba(75,192,192,1)',
-                        pointHoverBorderColor: 'rgba(220,220,220,1)',
+                        pointHoverRadius: 10,
+                        pointHoverBackgroundColor: 'rgba(75,192,192,0.25)',
+                        pointHoverBorderColor: 'rgba(220,220,220,0.3)',
                         pointHoverBorderWidth: 2,
                         pointRadius: 1,
-                        pointHitRadius: 10,
+                        pointHitRadius: 5,
                         data: response.data.data
                     },
-                    {
-                        label: 'critical',
-                        fill: false,
-                        lineTension: 0.1,
-                        backgroundColor: 'red',
-                        borderColor: 'red',
-                        borderCapStyle: 'butt',
-                        borderDash: [],
-                        borderDashOffset: 0.0,
-                        borderJoinStyle: 'miter',
-                        pointBorderColor: 'red',
-                        pointBackgroundColor: '#fff',
-                        pointBorderWidth: 1,
-                        pointHoverRadius: 5,
-                        pointHoverBackgroundColor: 'red',
-                        pointHoverBorderColor: 'red',
-                        pointHoverBorderWidth: 2,
-                        pointRadius: 1,
-                        pointHitRadius: 10,
-                        data: d
+                    repeatHorizontal('critical', 1000, response.data.labels.length, 'rgba(255, 5, 18, 0.25)'),
+                    repeatHorizontal('warning', 800, response.data.labels.length, 'rgba(204,204,0,0.25)'),
 
-                    }
                 ]
             });
         };
@@ -253,12 +265,21 @@ export default function LineChartCO2(props) {
             console.log(error);
         });
 
-    }, [toggle, props.sensor.name, props.sensor.oid]);
+    }, [toggle, date, props.sensor.name, props.sensor.oid]);
 
     const toggleFetch = () => setToggle(!toggle);
+    const changeDate = (x) => setDate(x);
 
     return (
         <div>
+            <DatePicker
+                todayButton={"Today"}
+                selected={date}
+                onChange={changeDate}
+                minDate={new Date()}
+                maxDate={addMonths(new Date(), 5)}
+                showDisabledMonthNavigation
+            />
             <Button style={{float: 'right'}} onClick={toggleFetch}>Refresh</Button>
             <Line data={dataCO2} options={setYAxis('ppm')}/>
         </div>
