@@ -194,6 +194,20 @@ func (c *Client) StoreEventData(e EventData, oid uuid.UUID, eid string) error {
 	return nil
 }
 
+func (c *Client) GetSensors() (*gin.H, bool) {
+	var sensors []model.Sensor
+	var oids []string
+	c.db.Find(&sensors)
+
+	for _, v := range sensors {
+		oids = append(oids, v.Oid.String())
+	}
+
+	result := &gin.H{"sensors": oids}
+
+	return result, len(oids) > 0
+}
+
 func New(vicinityConfig *config.VicinityConfig, db *gorm.DB) *Client {
 	return &Client{
 		config: vicinityConfig,

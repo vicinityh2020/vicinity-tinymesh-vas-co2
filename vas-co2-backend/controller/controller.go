@@ -10,15 +10,17 @@ import (
 	"net/http"
 	"time"
 	"vicinity-tinymesh-vas-co2/vas-co2-backend/config"
+	"vicinity-tinymesh-vas-co2/vas-co2-backend/sms"
 	"vicinity-tinymesh-vas-co2/vas-co2-backend/vicinity"
 )
 
 type Server struct {
-	config                       *config.ServerConfig
-	db                           *gorm.DB
-	vicinity                     *vicinity.Client
-	http                         *http.Server
-	ginLogger                    io.Writer
+	config    *config.ServerConfig
+	db        *gorm.DB
+	vicinity  *vicinity.Client
+	sms       *sms.SMS
+	http      *http.Server
+	ginLogger io.Writer
 }
 
 func (server *Server) setupRouter() *gin.Engine {
@@ -27,21 +29,28 @@ func (server *Server) setupRouter() *gin.Engine {
 
 	r.Use(gin.LoggerWithWriter(server.ginLogger))
 
+	/* Vicinity */
 	r.GET("/objects", server.handleTD)
 	r.PUT("/objects/:iid/publishers/:oid/events/:eid", server.vicinityEventHandler)
 
+	/* Web app */
+	r.GET("/api/objects", server.getObjects)
 	r.GET("/api/objects/:oid", server.getObjectReadings)
 	r.GET("/api/objects/:oid/date", server.getDateRange)
 	r.GET("/api/objects/:oid/date/:date", server.getObjectReadingsByDate)
+
+	r.PUT("/api/objects/:oid/reset-warning", server.resetWarning)
+
 	return r
 }
 
-func New(serverConfig *config.ServerConfig, db *gorm.DB, vicinity *vicinity.Client, logWriter io.Writer) *Server {
+func New(serverConfig *config.ServerConfig, db *gorm.DB, vicinity *vicinity.Client, sms *sms.SMS, logWriter io.Writer) *Server {
 	return &Server{
 		vicinity:  vicinity,
 		config:    serverConfig,
 		ginLogger: logWriter,
-		db: db,
+		sms:       sms,
+		db:        db,
 	}
 }
 

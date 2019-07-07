@@ -8,6 +8,41 @@ import (
 	"vicinity-tinymesh-vas-co2/vas-co2-backend/vicinity"
 )
 
+func (server *Server) getObjects(c *gin.Context) {
+	sensors, exist := server.vicinity.GetSensors()
+	if !exist {
+		log.Println("no sensors found")
+		c.AbortWithStatus(http.StatusNotFound)
+		return
+	}
+
+	c.JSON(http.StatusOK, sensors)
+}
+
+func (server *Server) resetWarning(c *gin.Context) {
+	oid, exists := c.Params.Get("oid")
+	if !exists {
+		log.Println("oid param is required")
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+
+	id, err := uuid.FromString(oid)
+	if err != nil {
+		log.Println(err.Error())
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	if err := server.sms.ResetSend(id); err != nil {
+		log.Println(err.Error())
+		c.AbortWithStatus(http.StatusNotFound)
+		return
+	}
+
+	c.Status(http.StatusOK)
+}
+
 func (server *Server) vicinityEventHandler(c *gin.Context) {
 	oid, exists := c.Params.Get("oid")
 	if !exists {
@@ -41,6 +76,10 @@ func (server *Server) vicinityEventHandler(c *gin.Context) {
 		log.Println(err.Error())
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
+	}
+
+	if err := server.sms.NotifyOnce(id, eid, event.Value); err != nil {
+		log.Println(err.Error())
 	}
 
 	c.JSON(http.StatusOK, nil)
