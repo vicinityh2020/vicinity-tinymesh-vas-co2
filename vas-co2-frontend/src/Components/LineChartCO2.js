@@ -77,7 +77,7 @@ function setYAxis(name) {
                     stepSize: 100
                 }
             }],
-            xAxes : [{
+            xAxes: [{
                 ticks: {
                     autoSkip: true,
                     maxTicksLimit: MAX_X_LABELS
@@ -102,8 +102,8 @@ export default function LineChartCO2(props) {
 
     const [dataCO2, setDataCO2] = useState(data);
     const [toggle, setToggle] = useState(false);
-    // const [date, setDate] = useState(moment.utc().format('YYYY-MM-DD'));
     const [date, setDate] = useState(moment.utc().toDate());
+    const [dateRange, setDateRange] = useState([moment.utc()]);
 
     Chart.pluginService.register({
         afterUpdate: function (chart) {
@@ -197,10 +197,6 @@ export default function LineChartCO2(props) {
     });
 
     useEffect(() => {
-
-    }, []);
-
-    useEffect(() => {
         const fetchData = async () => {
 
             const dateString = moment(date).utc().format('YYYY-MM-DD');
@@ -267,17 +263,54 @@ export default function LineChartCO2(props) {
 
     }, [toggle, date, props.sensor.name, props.sensor.oid]);
 
+    useEffect(() => {
+        const fetchDataRange = async () => {
+            const options = {
+                method: 'get',
+                url: `/api/objects/${props.sensor.oid}/date`,
+                time: 3000
+            };
+
+            return await axios(options);
+
+        };
+
+        fetchDataRange().catch((error) => {
+            console.log(error);
+        }).then((response) => {
+            const days = response.data.days;
+            if (!isEmpty(days)) {
+                const updated = days.map((e) => {
+                    return moment.utc(e);
+                });
+
+                setDateRange(updated);
+            }
+        });
+
+    }, [props.sensor.oid]);
+
     const toggleFetch = () => setToggle(!toggle);
     const changeDate = (x) => setDate(x);
+
+    const inDateRange = (receivedDate) => {
+        return (dateRange.filter((element) => {
+            const day = moment.utc(receivedDate);
+            return element.diff(day, 'days') === 0;
+        }).length > 0);
+    };
+
+    const maxDate = moment.utc().toDate();
 
     return (
         <div>
             <DatePicker
+                dateFormat={"yyyy/MM/dd"}
                 todayButton={"Today"}
                 selected={date}
                 onChange={changeDate}
-                minDate={new Date()}
-                maxDate={addMonths(new Date(), 5)}
+                maxDate={maxDate}
+                filterDate={inDateRange}
                 showDisabledMonthNavigation
             />
             <Button style={{float: 'right'}} onClick={toggleFetch}>Refresh</Button>

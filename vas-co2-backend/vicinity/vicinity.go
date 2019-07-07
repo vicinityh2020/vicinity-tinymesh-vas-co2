@@ -25,12 +25,12 @@ type EventData struct {
 	Milliseconds string `json:"timestamp" binding:"required"`
 }
 
-type ChartData struct {
+type chartData struct {
 	T     time.Time
 	Value int
 }
 
-type DateRange struct {
+type dateRange struct {
 	T time.Time
 }
 
@@ -79,16 +79,8 @@ func (c *Client) GetThingDescription() *gin.H {
 	return c.td
 }
 
-/*
-select DATE_TRUNC('hour', time) as t,
-array_agg(value) from readings r
-where r.time::date = '2019-07-05'
-AND r.sensor_oid = 'aac3fff0-49d6-45dd-aa3f-77c3e36644c8'
-GROUP BY t;
- */
-
 func (c *Client) GetDateRange(oid uuid.UUID) *gin.H {
-	var result []DateRange
+	var result []dateRange
 	c.db.Raw(
 		`SELECT DATE_TRUNC('day', time) as t
 		FROM readings r 
@@ -111,7 +103,7 @@ func (c *Client) GetDateRange(oid uuid.UUID) *gin.H {
 func (c *Client) GetReadingsByDate(oid uuid.UUID, dateString string) (*gin.H, error) {
 	var labels []string
 	var data []int
-	var result []ChartData
+	var result []chartData
 
 	c.db.Raw(
 		`select time as t, value
@@ -134,7 +126,7 @@ func (c *Client) GetReadingsByDate(oid uuid.UUID, dateString string) (*gin.H, er
 }
 
 func (c *Client) GetReadings(oid uuid.UUID) (*gin.H, error) {
-	var result []ChartData
+	var result []chartData
 	var labels []string
 	var data []int
 
