@@ -6,6 +6,8 @@ import (
 	"github.com/andern/keysms"
 	"github.com/jinzhu/gorm"
 	uuid "github.com/satori/go.uuid"
+	"log"
+	"time"
 	"vicinity-tinymesh-vas-co2/vas-co2-backend/config"
 	"vicinity-tinymesh-vas-co2/vas-co2-backend/model"
 )
@@ -17,6 +19,10 @@ const (
 type SMS struct {
 	db     *gorm.DB
 	config *config.SMSConfig
+}
+
+type Warning struct {
+	UpdatedAt time.Time
 }
 
 func New(smsConfig *config.SMSConfig, db *gorm.DB) *SMS {
@@ -77,6 +83,10 @@ func (sms *SMS) ResetSend(oid uuid.UUID) error {
 	return nil
 }
 
+func (sms *SMS) GetLastWarning(oid uuid.UUID) (bool, error) {
+	return sms.isSent(oid)
+}
+
 func (sms *SMS) isSent(oid uuid.UUID) (bool, error) {
 	var sensor model.Sensor
 	sms.db.Where(model.Sensor{Oid: oid}).First(&sensor)
@@ -98,6 +108,7 @@ func (sms *SMS) NotifyOnce(oid uuid.UUID, eid string, value int) error {
 		return err
 	} else if sent {
 		// skip send if already sent
+		log.Printf("skipping sms for oid '%s' \n", oid.String())
 		return nil
 	}
 
@@ -113,6 +124,8 @@ func (sms *SMS) notifyOnce(oid uuid.UUID, eid string) error {
 	if err != nil {
 		return err
 	}
+
+	log.Printf("%s: %s sms sent to %v\n", oid.String(), eid, sms.config.Recipients)
 
 	sensor.NotificationSent = true
 

@@ -40,6 +40,7 @@ func (server *Server) setupRouter() *gin.Engine {
 	r.GET("/api/objects/:oid/date/:date", server.getObjectReadingsByDate)
 
 	r.PUT("/api/objects/:oid/reset-warning", server.resetWarning)
+	r.GET("/api/objects/:oid/show-warning", server.getWarning)
 
 	return r
 }

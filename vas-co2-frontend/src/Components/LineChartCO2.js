@@ -1,7 +1,7 @@
 import React, {useEffect, useState} from 'react';
 import {Chart, Line} from 'react-chartjs-2';
 
-import {Button} from 'react-bootstrap';
+import {Button, ButtonGroup, ButtonToolbar, InputGroup, FormControl} from 'react-bootstrap';
 import PropTypes from 'prop-types';
 
 import axios from 'axios';
@@ -10,6 +10,30 @@ import DatePicker from 'react-datepicker';
 import moment from 'moment';
 
 const MAX_X_LABELS = 24;
+
+class DateInput extends React.Component {
+    constructor(props) {
+        super(props);
+    }
+
+    render() {
+        return (
+            <InputGroup className="mb-3">
+                <InputGroup.Prepend>
+                    <InputGroup.Text id={'1'}>{'Date'}</InputGroup.Text>
+                </InputGroup.Prepend>
+                <FormControl
+                    onClick={this.props.onClick}
+                    onChange={this.props.onChange}
+                    value={this.props.value}
+                />
+                <InputGroup.Append>
+                    <Button>Refresh</Button>
+                </InputGroup.Append>
+            </InputGroup>
+        );
+    }
+}
 
 const data = {
     labels: [],
@@ -59,7 +83,7 @@ function repeatHorizontal(name, y, length, color) {
         pointRadius: 0,
         pointHitRadius: 0,
         data: new Array(length).fill(y),
-    }
+    };
 }
 
 function setYAxis(name) {
@@ -104,6 +128,7 @@ export default function LineChartCO2(props) {
     const [toggle, setToggle] = useState(false);
     const [date, setDate] = useState(moment.utc().toDate());
     const [dateRange, setDateRange] = useState([moment.utc()]);
+    const [warningPanel, toggleWarning] = useState(false);
 
     Chart.pluginService.register({
         afterUpdate: function (chart) {
@@ -272,12 +297,9 @@ export default function LineChartCO2(props) {
             };
 
             return await axios(options);
-
         };
 
-        fetchDataRange().catch((error) => {
-            console.log(error);
-        }).then((response) => {
+        fetchDataRange().then((response) => {
             const days = response.data.days;
             if (!isEmpty(days)) {
                 const updated = days.map((e) => {
@@ -286,9 +308,30 @@ export default function LineChartCO2(props) {
 
                 setDateRange(updated);
             }
+        }).catch((error) => {
+            console.log(error);
         });
 
     }, [props.sensor.oid]);
+
+    useEffect(() => {
+        const fetchWarning = async () => {
+            const options = {
+                method: 'get',
+                url: `/api/objects/${props.sensor.oid}/show-warning`,
+                time: 3000
+            };
+
+            return await axios(options);
+        };
+
+        fetchWarning().then(response => {
+            toggleWarning(response.data.sent);
+        }).catch(error => {
+            console.log(error);
+        });
+
+    }, [warningPanel]);
 
     const toggleFetch = () => setToggle(!toggle);
     const changeDate = (x) => setDate(x);
@@ -302,18 +345,69 @@ export default function LineChartCO2(props) {
 
     const maxDate = moment.utc().toDate();
 
+    // Function components receiving refs: change with the class above if problems arise
+    const CustomDateInput = ({onChange, placeholder, value, isSecure, id, onClick}) => (
+        <InputGroup className="mb-3">
+            <InputGroup.Prepend>
+                <InputGroup.Text id={id}>{'Date'}</InputGroup.Text>
+            </InputGroup.Prepend>
+            <FormControl
+                onChange={onChange}
+                onClick={onClick}
+                aria-describedby={id}
+                value={value}
+            />
+            <InputGroup.Append>
+                <Button onClick={toggleFetch}>Refresh</Button>
+            </InputGroup.Append>
+        </InputGroup>
+    );
+
+    const clearWarning = () => {
+        const resetWarning = async () => {
+            const options = {
+                method: 'put',
+                url: `/api/objects/${props.sensor.oid}/reset-warning`,
+                time: 3000
+            };
+
+            return await axios(options);
+        };
+
+        resetWarning().then(r => {
+            toggleWarning(false);
+        }).catch(error => {
+            console.log(error);
+        });
+    };
+
+    const ShowWarningPanel = ({show}) => show ? (
+        <InputGroup style={{marginLeft: 'auto'}}>
+            <InputGroup.Prepend style={{display: 'block'}}>
+                <InputGroup.Text>Warning</InputGroup.Text>
+            </InputGroup.Prepend>
+            <InputGroup.Append style={{display: 'block'}}>
+                <Button onClick={clearWarning}>Clear</Button>
+            </InputGroup.Append>
+        </InputGroup>
+    ): '';
+
     return (
         <div>
-            <DatePicker
-                dateFormat={"yyyy/MM/dd"}
-                todayButton={"Today"}
-                selected={date}
-                onChange={changeDate}
-                maxDate={maxDate}
-                filterDate={inDateRange}
-                showDisabledMonthNavigation
-            />
-            <Button style={{float: 'right'}} onClick={toggleFetch}>Refresh</Button>
+            <ButtonToolbar className="mb-3" aria-label="Toolbar with Button groups">
+                <DatePicker
+                    dateFormat={'yyyy/MM/dd'}
+                    todayButton={'Today'}
+                    customInput={<CustomDateInput/>}
+                    selected={date}
+                    onChange={changeDate}
+                    maxDate={maxDate}
+                    filterDate={inDateRange}
+                    showDisabledMonthNavigation
+                />
+                <ShowWarningPanel show={warningPanel}/>
+            </ButtonToolbar>
+
             <Line data={dataCO2} options={setYAxis('ppm')}/>
         </div>
     );

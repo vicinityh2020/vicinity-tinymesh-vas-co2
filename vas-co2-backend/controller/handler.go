@@ -19,6 +19,31 @@ func (server *Server) getObjects(c *gin.Context) {
 	c.JSON(http.StatusOK, sensors)
 }
 
+func (server *Server) getWarning(c *gin.Context) {
+	oid, exists := c.Params.Get("oid")
+	if !exists {
+		log.Println("oid param is required")
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+
+	id, err := uuid.FromString(oid)
+	if err != nil {
+		log.Println(err.Error())
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	exist, err := server.sms.GetLastWarning(id)
+	if err != nil {
+		log.Println(err.Error())
+		c.AbortWithStatus(http.StatusNotFound)
+		return
+	}
+
+	c.JSON(http.StatusOK, &gin.H{"sent": exist})
+}
+
 func (server *Server) resetWarning(c *gin.Context) {
 	oid, exists := c.Params.Get("oid")
 	if !exists {
@@ -79,6 +104,7 @@ func (server *Server) vicinityEventHandler(c *gin.Context) {
 	}
 
 	if err := server.sms.NotifyOnce(id, eid, event.Value); err != nil {
+		log.Printf("could not send sms oid '%s' value '%d'\n", oid, event.Value)
 		log.Println(err.Error())
 	}
 

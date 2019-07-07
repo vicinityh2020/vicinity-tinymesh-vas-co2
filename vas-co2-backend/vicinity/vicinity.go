@@ -8,6 +8,7 @@ import (
 	uuid "github.com/satori/go.uuid"
 	"log"
 	"strconv"
+	"strings"
 	"time"
 	"vicinity-tinymesh-vas-co2/vas-co2-backend/config"
 	"vicinity-tinymesh-vas-co2/vas-co2-backend/model"
@@ -32,6 +33,11 @@ type chartData struct {
 
 type dateRange struct {
 	T time.Time
+}
+
+type sensor struct {
+	Name string `json:"name"`
+	Oid  string `json:"oid"`
 }
 
 const (
@@ -196,16 +202,17 @@ func (c *Client) StoreEventData(e EventData, oid uuid.UUID, eid string) error {
 
 func (c *Client) GetSensors() (*gin.H, bool) {
 	var sensors []model.Sensor
-	var oids []string
-	c.db.Find(&sensors)
+	var responseSensors []*sensor
+
+	c.db.Order("eid asc").Find(&sensors)
 
 	for _, v := range sensors {
-		oids = append(oids, v.Oid.String())
+		responseSensors = append(responseSensors, &sensor{Name: strings.Split(v.Eid, "-")[0], Oid: v.Oid.String()})
 	}
 
-	result := &gin.H{"sensors": oids}
+	result := &gin.H{"sensors": responseSensors}
 
-	return result, len(oids) > 0
+	return result, len(sensors) > 0
 }
 
 func New(vicinityConfig *config.VicinityConfig, db *gorm.DB) *Client {
