@@ -8,6 +8,8 @@ import axios from 'axios';
 
 import DatePicker from 'react-datepicker';
 import moment from 'moment';
+import tz from 'moment-timezone';
+
 
 const MAX_X_LABELS = 24;
 
@@ -126,8 +128,8 @@ export default function LineChartCO2(props) {
 
     const [dataCO2, setDataCO2] = useState(data);
     const [toggle, setToggle] = useState(false);
-    const [date, setDate] = useState(moment.utc().toDate());
-    const [dateRange, setDateRange] = useState([moment.utc()]);
+    const [date, setDate] = useState(moment().tz('Europe/Oslo').toDate());
+    const [dateRange, setDateRange] = useState([moment().tz('Europe/Oslo')]);
     const [warningPanel, toggleWarning] = useState(false);
 
     Chart.pluginService.register({
@@ -224,7 +226,7 @@ export default function LineChartCO2(props) {
     useEffect(() => {
         const fetchData = async () => {
 
-            const dateString = moment(date).utc().format('YYYY-MM-DD');
+            const dateString = moment(date).tz('Europe/Oslo').format('YYYY-MM-DD');
 
             const options = {
                 method: 'get',
@@ -303,7 +305,7 @@ export default function LineChartCO2(props) {
             const days = response.data.days;
             if (!isEmpty(days)) {
                 const updated = days.map((e) => {
-                    return moment.utc(e);
+                    return moment(e).tz('Europe/Oslo');
                 });
 
                 setDateRange(updated);
@@ -338,12 +340,12 @@ export default function LineChartCO2(props) {
 
     const inDateRange = (receivedDate) => {
         return (dateRange.filter((element) => {
-            const day = moment.utc(receivedDate);
+            const day = moment(receivedDate).tz('Europe/Oslo');
             return element.diff(day, 'days') === 0;
         }).length > 0);
     };
 
-    const maxDate = moment.utc().toDate();
+    const maxDate = moment().tz('Europe/Oslo').toDate();
 
     // Function components receiving refs: change with the class above if problems arise
     const CustomDateInput = ({onChange, placeholder, value, isSecure, id, onClick}) => (
