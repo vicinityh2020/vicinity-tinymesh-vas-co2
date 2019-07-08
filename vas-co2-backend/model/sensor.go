@@ -12,6 +12,7 @@ type Sensor struct {
 	Eid      string    `gorm:"type:varchar(100);unique_index"`
 	Unit     string    `gorm:"type:varchar(20)"`
 	Readings []Reading `gorm:"foreignkey:SensorOid"`
+	NotificationSent bool `sql:"default:false"`
 }
 
 type Reading struct {

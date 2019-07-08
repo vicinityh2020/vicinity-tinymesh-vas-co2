@@ -1,18 +1,47 @@
 import React, {useEffect, useState} from 'react';
 import {Chart, Line} from 'react-chartjs-2';
 
-import {Button} from 'react-bootstrap';
+import {Button, ButtonGroup, ButtonToolbar, InputGroup, FormControl} from 'react-bootstrap';
 import PropTypes from 'prop-types';
 
 import axios from 'axios';
 
-const MAX_X_LABELS = 11;
+import DatePicker from 'react-datepicker';
+import moment from 'moment';
+import tz from 'moment-timezone';
+
+
+const MAX_X_LABELS = 24;
+
+class DateInput extends React.Component {
+    constructor(props) {
+        super(props);
+    }
+
+    render() {
+        return (
+            <InputGroup className="mb-3">
+                <InputGroup.Prepend>
+                    <InputGroup.Text id={'1'}>{'Date'}</InputGroup.Text>
+                </InputGroup.Prepend>
+                <FormControl
+                    onClick={this.props.onClick}
+                    onChange={this.props.onChange}
+                    value={this.props.value}
+                />
+                <InputGroup.Append>
+                    <Button>Refresh</Button>
+                </InputGroup.Append>
+            </InputGroup>
+        );
+    }
+}
 
 const data = {
     labels: [],
     datasets: [
         {
-            label: 'No data for the last 12 hours',
+            label: 'No data for the selected date',
             fill: true,
             lineTension: 0.1,
             backgroundColor: 'rgba(75,192,192,0.4)',
@@ -35,6 +64,30 @@ const data = {
     ]
 };
 
+function repeatHorizontal(name, y, length, color) {
+    return {
+        label: name,
+        fill: false,
+        lineTension: 0.1,
+        backgroundColor: color,
+        borderColor: color,
+        borderCapStyle: 'butt',
+        borderDash: [],
+        borderDashOffset: 0.0,
+        borderJoinStyle: 'miter',
+        pointBorderColor: color,
+        pointBackgroundColor: '#fff',
+        pointBorderWidth: 1,
+        pointHoverRadius: 0,
+        pointHoverBackgroundColor: color,
+        pointHoverBorderColor: color,
+        pointHoverBorderWidth: 2,
+        pointRadius: 0,
+        pointHitRadius: 0,
+        data: new Array(length).fill(y),
+    };
+}
+
 function setYAxis(name) {
     return {
         scales: {
@@ -45,9 +98,12 @@ function setYAxis(name) {
                     },
                     padding: 0,
                     beginAtZero: true,
+                    min: 0,
+                    max: 1200,
+                    stepSize: 100
                 }
             }],
-            xAxes : [{
+            xAxes: [{
                 ticks: {
                     autoSkip: true,
                     maxTicksLimit: MAX_X_LABELS
@@ -72,6 +128,9 @@ export default function LineChartCO2(props) {
 
     const [dataCO2, setDataCO2] = useState(data);
     const [toggle, setToggle] = useState(false);
+    const [date, setDate] = useState(moment().tz('Europe/Oslo').toDate());
+    const [dateRange, setDateRange] = useState([moment().tz('Europe/Oslo')]);
+    const [warningPanel, toggleWarning] = useState(false);
 
     Chart.pluginService.register({
         afterUpdate: function (chart) {
@@ -166,9 +225,12 @@ export default function LineChartCO2(props) {
 
     useEffect(() => {
         const fetchData = async () => {
+
+            const dateString = moment(date).tz('Europe/Oslo').format('YYYY-MM-DD');
+
             const options = {
                 method: 'get',
-                url: `/api/objects/${props.sensor.oid}`,
+                url: `/api/objects/${props.sensor.oid}/date/${dateString}`,
                 time: 3000
             };
 
@@ -176,7 +238,7 @@ export default function LineChartCO2(props) {
             try {
                 response = await axios(options);
             } catch (e) {
-                alert('Unable to connect to backend server. Make sure the backend server is running');
+                // alert('Unable to connect to backend server. Make sure the backend server is running');
                 console.log(e);
                 return response;
             }
@@ -191,16 +253,8 @@ export default function LineChartCO2(props) {
                 return;
             }
 
-            let l = [];
-            let d = [];
-
-            for (let i = 0; i <= 100; i++) {
-                l[i] = i;
-                d[i] = 1000;
-            }
-
             setDataCO2({
-                labels: l,
+                labels: response.data.labels,
                 datasets: [
                     {
                         label: [props.sensor.name],
@@ -215,36 +269,17 @@ export default function LineChartCO2(props) {
                         pointBorderColor: 'rgba(75,192,192,1)',
                         pointBackgroundColor: '#fff',
                         pointBorderWidth: 1,
-                        pointHoverRadius: 5,
-                        pointHoverBackgroundColor: 'rgba(75,192,192,1)',
-                        pointHoverBorderColor: 'rgba(220,220,220,1)',
+                        pointHoverRadius: 10,
+                        pointHoverBackgroundColor: 'rgba(75,192,192,0.25)',
+                        pointHoverBorderColor: 'rgba(220,220,220,0.3)',
                         pointHoverBorderWidth: 2,
                         pointRadius: 1,
-                        pointHitRadius: 10,
+                        pointHitRadius: 5,
                         data: response.data.data
                     },
-                    {
-                        label: 'critical',
-                        fill: false,
-                        lineTension: 0.1,
-                        backgroundColor: 'red',
-                        borderColor: 'red',
-                        borderCapStyle: 'butt',
-                        borderDash: [],
-                        borderDashOffset: 0.0,
-                        borderJoinStyle: 'miter',
-                        pointBorderColor: 'red',
-                        pointBackgroundColor: '#fff',
-                        pointBorderWidth: 1,
-                        pointHoverRadius: 5,
-                        pointHoverBackgroundColor: 'red',
-                        pointHoverBorderColor: 'red',
-                        pointHoverBorderWidth: 2,
-                        pointRadius: 1,
-                        pointHitRadius: 10,
-                        data: d
+                    repeatHorizontal('critical', 1000, response.data.labels.length, 'rgba(255, 5, 18, 0.25)'),
+                    repeatHorizontal('warning', 800, response.data.labels.length, 'rgba(204,204,0,0.25)'),
 
-                    }
                 ]
             });
         };
@@ -253,13 +288,128 @@ export default function LineChartCO2(props) {
             console.log(error);
         });
 
-    }, [toggle, props.sensor.name, props.sensor.oid]);
+    }, [toggle, date, props.sensor.name, props.sensor.oid]);
+
+    useEffect(() => {
+        const fetchDataRange = async () => {
+            const options = {
+                method: 'get',
+                url: `/api/objects/${props.sensor.oid}/date`,
+                time: 3000
+            };
+
+            return await axios(options);
+        };
+
+        fetchDataRange().then((response) => {
+            const days = response.data.days;
+            if (!isEmpty(days)) {
+                const updated = days.map((e) => {
+                    return moment(e).tz('Europe/Oslo');
+                });
+
+                setDateRange(updated);
+            }
+        }).catch((error) => {
+            console.log(error);
+        });
+
+    }, [props.sensor.oid]);
+
+    useEffect(() => {
+        const fetchWarning = async () => {
+            const options = {
+                method: 'get',
+                url: `/api/objects/${props.sensor.oid}/show-warning`,
+                time: 3000
+            };
+
+            return await axios(options);
+        };
+
+        fetchWarning().then(response => {
+            toggleWarning(response.data.sent);
+        }).catch(error => {
+            console.log(error);
+        });
+
+    }, [warningPanel]);
 
     const toggleFetch = () => setToggle(!toggle);
+    const changeDate = (x) => setDate(x);
+
+    const inDateRange = (receivedDate) => {
+        return (dateRange.filter((element) => {
+            const day = moment(receivedDate).tz('Europe/Oslo');
+            return element.diff(day, 'days') === 0;
+        }).length > 0);
+    };
+
+    const maxDate = moment().tz('Europe/Oslo').toDate();
+
+    // Function components receiving refs: change with the class above if problems arise
+    const CustomDateInput = ({onChange, placeholder, value, isSecure, id, onClick}) => (
+        <InputGroup className="mb-3">
+            <InputGroup.Prepend>
+                <InputGroup.Text id={id}>{'Date'}</InputGroup.Text>
+            </InputGroup.Prepend>
+            <FormControl
+                onChange={onChange}
+                onClick={onClick}
+                aria-describedby={id}
+                value={value}
+            />
+            <InputGroup.Append>
+                <Button onClick={toggleFetch}>Refresh</Button>
+            </InputGroup.Append>
+        </InputGroup>
+    );
+
+    const clearWarning = () => {
+        const resetWarning = async () => {
+            const options = {
+                method: 'put',
+                url: `/api/objects/${props.sensor.oid}/reset-warning`,
+                time: 3000
+            };
+
+            return await axios(options);
+        };
+
+        resetWarning().then(r => {
+            toggleWarning(false);
+        }).catch(error => {
+            console.log(error);
+        });
+    };
+
+    const ShowWarningPanel = ({show}) => show ? (
+        <InputGroup style={{marginLeft: 'auto'}}>
+            <InputGroup.Prepend style={{display: 'block'}}>
+                <InputGroup.Text>Warning</InputGroup.Text>
+            </InputGroup.Prepend>
+            <InputGroup.Append style={{display: 'block'}}>
+                <Button onClick={clearWarning}>Clear</Button>
+            </InputGroup.Append>
+        </InputGroup>
+    ): '';
 
     return (
         <div>
-            <Button style={{float: 'right'}} onClick={toggleFetch}>Refresh</Button>
+            <ButtonToolbar className="mb-3" aria-label="Toolbar with Button groups">
+                <DatePicker
+                    dateFormat={'yyyy/MM/dd'}
+                    todayButton={'Today'}
+                    customInput={<CustomDateInput/>}
+                    selected={date}
+                    onChange={changeDate}
+                    maxDate={maxDate}
+                    filterDate={inDateRange}
+                    showDisabledMonthNavigation
+                />
+                <ShowWarningPanel show={warningPanel}/>
+            </ButtonToolbar>
+
             <Line data={dataCO2} options={setYAxis('ppm')}/>
         </div>
     );

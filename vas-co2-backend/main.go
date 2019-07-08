@@ -15,6 +15,7 @@ import (
 	"vicinity-tinymesh-vas-co2/vas-co2-backend/controller"
 	"vicinity-tinymesh-vas-co2/vas-co2-backend/database"
 	"vicinity-tinymesh-vas-co2/vas-co2-backend/model"
+	"vicinity-tinymesh-vas-co2/vas-co2-backend/sms"
 	"vicinity-tinymesh-vas-co2/vas-co2-backend/vicinity"
 )
 
@@ -75,14 +76,19 @@ func (app *Environment) run() {
 
 	//app.DB.DropTableIfExists(&model.Reading{}, &model.Sensor{})
 	app.DB.AutoMigrate(&model.Sensor{}, &model.Reading{})
-
 	app.DB.Model(&model.Reading{}).AddForeignKey("sensor_oid", "sensors(oid)", "CASCADE", "RESTRICT")
+
+	// KeySMS
+	keysmsClient := sms.New(app.Config.SMS, app.DB)
+	if err := keysmsClient.Auth(); err != nil {
+		log.Fatalln(err.Error())
+	}
 
 	// VICINITY
 	vas := vicinity.New(app.Config.Vicinity, app.DB)
 
 	// Controller
-	server := controller.New(app.Config.Server, app.DB, vas, ginLogger)
+	server := controller.New(app.Config.Server, app.DB, vas, keysmsClient, ginLogger)
 	go server.Listen()
 	defer server.Shutdown()
 

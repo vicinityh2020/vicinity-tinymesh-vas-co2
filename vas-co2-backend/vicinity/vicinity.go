@@ -8,6 +8,7 @@ import (
 	uuid "github.com/satori/go.uuid"
 	"log"
 	"strconv"
+	"strings"
 	"time"
 	"vicinity-tinymesh-vas-co2/vas-co2-backend/config"
 	"vicinity-tinymesh-vas-co2/vas-co2-backend/model"
@@ -25,9 +26,18 @@ type EventData struct {
 	Milliseconds string `json:"timestamp" binding:"required"`
 }
 
-type ChartData struct {
+type chartData struct {
 	T     time.Time
 	Value int
+}
+
+type dateRange struct {
+	T time.Time
+}
+
+type sensor struct {
+	Name string `json:"name"`
+	Oid  string `json:"oid"`
 }
 
 const (
@@ -75,8 +85,54 @@ func (c *Client) GetThingDescription() *gin.H {
 	return c.td
 }
 
+func (c *Client) GetDateRange(oid uuid.UUID) *gin.H {
+	var result []dateRange
+	c.db.Raw(
+		`SELECT DATE_TRUNC('day', time) as t
+		FROM readings r 
+		WHERE r.sensor_oid = ?
+		GROUP BY t
+		ORDER BY t
+		ASC`, oid).Scan(&result)
+
+	var days []time.Time
+
+	for _, day := range result {
+		days = append(days, day.T)
+	}
+
+	return &gin.H{
+		"days": days,
+	}
+}
+
+func (c *Client) GetReadingsByDate(oid uuid.UUID, dateString string) (*gin.H, error) {
+	var labels []string
+	var data []int
+	var result []chartData
+
+	c.db.Raw(
+		`select time as t, value
+		FROM readings r
+		WHERE r.time::date = ? 
+		AND r.sensor_oid = ? 
+		ORDER BY r.time ASC`, dateString, oid).Scan(&result)
+
+	for _, row := range result {
+		labels = append(labels, row.T.Format("15:04"))
+		data = append(data, row.Value)
+	}
+
+	readings := &gin.H{
+		"labels": labels,
+		"data":   data,
+	}
+
+	return readings, nil
+}
+
 func (c *Client) GetReadings(oid uuid.UUID) (*gin.H, error) {
-	var result []ChartData
+	var result []chartData
 	var labels []string
 	var data []int
 
@@ -97,22 +153,6 @@ func (c *Client) GetReadings(oid uuid.UUID) (*gin.H, error) {
 		log.Println(c.db.Error.Error())
 		return nil, errors.New("could not execute select query")
 	}
-
-	// TODO: uncomment if you would like a fallback query in case no data was fetched in the interval
-	//if len(result) == 0 {
-	//	c.db.Raw(`SELECT DATE_TRUNC('hour', time) as t,
-	//	ROUND(AVG(value), 0) as value
-	//	FROM readings r
-	//	WHERE r.time >= ((SELECT MAX(r.time) from readings as r WHERE r.sensor_oid = ?) - INTERVAL '12 hours')
-	//	AND r.sensor_oid = ?
-	//	GROUP BY t
-	//	ORDER BY t ASC;`, oid, oid).Scan(&result)
-	//
-	//	if c.db.Error != nil {
-	//		log.Println(c.db.Error.Error())
-	//		return nil, errors.New("could not execute auxiliary select query")
-	//	}
-	//}
 
 	for _, row := range result {
 		labels = append(labels, row.T.Format("15:04"))
@@ -158,6 +198,21 @@ func (c *Client) StoreEventData(e EventData, oid uuid.UUID, eid string) error {
 	}
 
 	return nil
+}
+
+func (c *Client) GetSensors() (*gin.H, bool) {
+	var sensors []model.Sensor
+	var responseSensors []*sensor
+
+	c.db.Order("eid asc").Find(&sensors)
+
+	for _, v := range sensors {
+		responseSensors = append(responseSensors, &sensor{Name: strings.Split(v.Eid, "-")[0], Oid: v.Oid.String()})
+	}
+
+	result := &gin.H{"sensors": responseSensors}
+
+	return result, len(sensors) > 0
 }
 
 func New(vicinityConfig *config.VicinityConfig, db *gorm.DB) *Client {

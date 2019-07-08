@@ -4,17 +4,21 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 )
 
 const (
 	vicinityAgentUrl  = "http://localhost:9997"
 	vicinityAdapterID = "967fbc90-c1fa-4390-a438-09a99d2c19cb"
-	vicinityVASOid = "7cd7a012-9758-4498-a5c3-bcdbe0ba5c7b"
+	vicinityVASOid    = "7cd7a012-9758-4498-a5c3-bcdbe0ba5c7b"
 
 	serverPort = "9090"
 
 	databasePort = "5432"
 	databaseHost = "localhost"
+
+	smsSender    = "CWi:Moss CO2"
+	smsRecipient = "46859097"
 )
 
 type VicinityConfig struct {
@@ -35,10 +39,18 @@ type DBConfig struct {
 	Pass string
 }
 
+type SMSConfig struct {
+	User       string
+	Key        string
+	Sender     string
+	Recipients []string
+}
+
 type Config struct {
 	Vicinity *VicinityConfig
 	Server   *ServerConfig
 	Database *DBConfig
+	SMS      *SMSConfig
 }
 
 func (dbc *DBConfig) String() string {
@@ -54,7 +66,7 @@ func New() *Config {
 		Vicinity: &VicinityConfig{
 			AgentUrl:  getEnv("VICINITY_AGENT_URL", vicinityAgentUrl),
 			AdapterID: getEnv("VICINITY_ADAPTER_ID", vicinityAdapterID),
-			Oid: getEnv("VICINITY_VAS_OID", vicinityVASOid),
+			Oid:       getEnv("VICINITY_VAS_OID", vicinityVASOid),
 		},
 		Server: &ServerConfig{
 			Port: getEnv("SERVER_PORT", serverPort),
@@ -66,8 +78,15 @@ func New() *Config {
 			Name: getEnv("DB_NAME", ""),
 			Pass: getEnv("DB_PASS", ""),
 		},
+		SMS: &SMSConfig{
+			Recipients: strings.Split(getEnv("KEYSMS_RECIPIENTS", smsRecipient), ","),
+			Sender:     getEnv("KEYSMS_SENDER", smsSender),
+			User:       getEnv("KEYSMS_USER", ""),
+			Key:        getEnv("KEYSMS_API_KEY", ""),
+		},
 	}
 }
+
 
 // Simple helper function to read an environment or return a default value
 func getEnv(key string, defaultVal string) string {
