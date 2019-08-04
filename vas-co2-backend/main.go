@@ -83,7 +83,7 @@ func (app *Environment) run() {
 
 	// KPI Tracker
 	kpiTracker := vicinity.NewKPITracker(app.Config.Vicinity, app.DB, kpiLogger)
-	kpiTracker.Tick(10)
+	kpiTracker.Tick(24)
 	defer kpiTracker.Stop()
 
 	kpiTracker.GatherAndReport()
