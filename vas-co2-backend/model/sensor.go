@@ -8,11 +8,11 @@ import (
 )
 
 type Sensor struct {
-	Oid      uuid.UUID `gorm:"primary_key"`
-	Eid      string    `gorm:"type:varchar(100);unique_index"`
-	Unit     string    `gorm:"type:varchar(20)"`
-	Readings []Reading `gorm:"foreignkey:SensorOid"`
-	NotificationSent bool `sql:"default:false"`
+	Oid              uuid.UUID `gorm:"primary_key"`
+	Eid              string    `gorm:"type:varchar(100);unique_index"`
+	Unit             string    `gorm:"type:varchar(20)"`
+	Readings         []Reading `gorm:"foreignkey:SensorOid"`
+	NotificationSent bool      `sql:"default:false"`
 }
 
 type Reading struct {
@@ -20,4 +20,10 @@ type Reading struct {
 	Value     int
 	Time      time.Time
 	SensorOid uuid.UUID `gorm:"index"`
+}
+
+type Notification struct {
+	gorm.Model
+	TimeNotified time.Time
+	SensorOid    uuid.UUID `gorm:"index"`
 }

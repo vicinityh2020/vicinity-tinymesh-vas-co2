@@ -11,6 +11,7 @@ const (
 	vicinityAgentUrl  = "http://localhost:9997"
 	vicinityAdapterID = "967fbc90-c1fa-4390-a438-09a99d2c19cb"
 	vicinityVASOid    = "7cd7a012-9758-4498-a5c3-bcdbe0ba5c7b"
+	vicinityKPIKey    = ""
 
 	serverPort = "9090"
 
@@ -18,13 +19,16 @@ const (
 	databaseHost = "localhost"
 
 	smsSender    = "CWi:Moss CO2"
-	smsRecipient = "46859097"
+
+	// :-)
+	smsRecipient = "41369367"
 )
 
 type VicinityConfig struct {
 	AgentUrl  string
 	AdapterID string
 	Oid       string
+	KPIKey    string
 }
 
 type ServerConfig struct {
@@ -67,6 +71,7 @@ func New() *Config {
 			AgentUrl:  getEnv("VICINITY_AGENT_URL", vicinityAgentUrl),
 			AdapterID: getEnv("VICINITY_ADAPTER_ID", vicinityAdapterID),
 			Oid:       getEnv("VICINITY_VAS_OID", vicinityVASOid),
+			KPIKey:    getEnv("VICINITY_KPI_KEY", vicinityKPIKey),
 		},
 		Server: &ServerConfig{
 			Port: getEnv("SERVER_PORT", serverPort),
@@ -86,7 +91,6 @@ func New() *Config {
 		},
 	}
 }
-
 
 // Simple helper function to read an environment or return a default value
 func getEnv(key string, defaultVal string) string {

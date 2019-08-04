@@ -39,6 +39,7 @@ func (server *Server) setupRouter() *gin.Engine {
 	r.GET("/api/objects/:oid/date", server.getDateRange)
 	r.GET("/api/objects/:oid/date/:date", server.getObjectReadingsByDate)
 
+	/* Show/Hide warning button when SMS has been sent */
 	r.PUT("/api/objects/:oid/reset-warning", server.resetWarning)
 	r.GET("/api/objects/:oid/show-warning", server.getWarning)
 

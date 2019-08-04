@@ -68,15 +68,25 @@ func (app *Environment) run() {
 	dbLogger := app.newLogWriter("gorm")
 	defer dbLogger.Close()
 
+	kpiLogger := app.newLogWriter("tracker")
+	defer kpiLogger.Close()
+
 	log.SetOutput(mainLogger)
 
 	// Database
 	app.DB = database.New(app.Config.Database, dbLogger)
 	defer app.DB.Close()
 
-	//app.DB.DropTableIfExists(&model.Reading{}, &model.Sensor{})
-	app.DB.AutoMigrate(&model.Sensor{}, &model.Reading{})
+	//app.DB.DropTableIfExists(&model.Reading{}, &model.Sensor{}, &model.Notification{})
+	app.DB.AutoMigrate(&model.Sensor{}, &model.Reading{}, &model.Notification{})
 	app.DB.Model(&model.Reading{}).AddForeignKey("sensor_oid", "sensors(oid)", "CASCADE", "RESTRICT")
+
+	// KPI Tracker
+	kpiTracker := vicinity.NewKPITracker(app.Config.Vicinity, app.DB, kpiLogger)
+	kpiTracker.Tick(10)
+	defer kpiTracker.Stop()
+
+	kpiTracker.GatherAndReport()
 
 	// KeySMS
 	keysmsClient := sms.New(app.Config.SMS, app.DB)

@@ -118,6 +118,10 @@ func (sms *SMS) NotifyOnce(oid uuid.UUID, eid string, value int) error {
 func (sms *SMS) notifyOnce(oid uuid.UUID, eid string) error {
 	var sensor model.Sensor
 
+	// Save for KPI
+	var alert = model.Notification{SensorOid: oid, TimeNotified: time.Now()}
+	sms.db.Create(&alert)
+
 	sms.db.Where(model.Sensor{Oid: oid}).First(&sensor)
 
 	err := sms.notify(eid)
